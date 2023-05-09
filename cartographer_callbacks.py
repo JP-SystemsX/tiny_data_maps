@@ -117,7 +117,7 @@ class Cartographer(tr.TrainerCallback):
         plt.show()
 
 
-class Normalized_Cartographer(Cartographer):
+class NormalizedCartographer(Cartographer):
     """
     A Cartographer that is normalized such that easy to learn samples have a large positive y val, hard to learn
     a large negative one while ambiguous samples have a low x value.
@@ -160,6 +160,19 @@ class Normalized_Cartographer(Cartographer):
         """
         return 1 - np.std(self.gold_labels_probabilities, axis=-1)
 
+    @property
+    def learnability(self):
+        '''
+        A simple heuristic on how learnable a sample is.
+        Calculated simply by multiplying solidity and (normalized) confidence
+        leading to a value between [+1,-1] where:
+        +1 means super-easy-to-learn (Model might have over-fitted on that one)
+         0 means ambiguous
+        -1 means couldn't be learned at all (Might be falsely Labeled)
+        :return: Learnabilty
+        '''
+        return self.solidity * self.confidence
+
     def visualize(self):
         # Plot
         _, ax = plt.subplots(figsize=(9, 7))
@@ -197,19 +210,64 @@ class Normalized_Cartographer(Cartographer):
 
         # Set the y-axis limits to be between 1 and -1
         plt.ylim(-1.1, 1.1)
+        plt.xlim(np.min(self.solidity), 1)
+
         plt.axhline(y=0, color='black', linestyle='--')
 
         plt.show()
 
-    @property
-    def learnability(self):
-        '''
-        A simple heuristic on how learnable a sample is.
-        Calculated simply by multiplying solidity and (normalized) confidence
-        leading to a value between [+1,-1] where:
-        +1 means super-easy-to-learn (Model might have over-fitted on that one)
-         0 means ambiguous
-        -1 means couldn't be learned at all (Might be falsely Labeled)
-        :return: Learnabilty
-        '''
-        return self.solidity * self.confidence
+    def compare_to(self, other:Cartographer):
+        positions_x = self.solidity
+        positions_y = self.confidence
+        movements_x = other.solidity - self.solidity
+        movements_y = other.confidence - self.confidence
+
+        # Plot
+        _, ax = plt.subplots(figsize=(9, 7))
+
+        sns.scatterplot(x=positions_x, y=positions_y, hue=self.correctness,
+                        ax=ax)
+        sns.kdeplot(x=positions_x, y=positions_y,
+                    levels=8, color=sns.color_palette("Paired")[7], linewidths=1, ax=ax)
+
+        ax.set(
+            title=f'''
+            Data map comparison for:
+            {self.dataset.builder_name} set\nbased on a {self.trainer.model.name_or_path} classifier and
+            {other.dataset.builder_name} set\nbased on a {other.trainer.model.name_or_path} classifier 
+            ''',
+            xlabel='Solidity',
+            ylabel='Confidence'
+        )
+
+        # Annotations
+        box_style = {'boxstyle': 'round', 'facecolor': 'white', 'ec': 'black'}
+        ax.text(0.8, 0.85,
+                'easy-to-learn',
+                transform=ax.transAxes,
+                verticalalignment='top',
+                bbox=box_style)
+        ax.text(0.05, 0.51,
+                'ambiguous',
+                transform=ax.transAxes,
+                verticalalignment='top',
+                bbox=box_style)
+        ax.text(0.8, 0.1,
+                'hard-to-learn',
+                transform=ax.transAxes,
+                verticalalignment='top',
+                bbox=box_style)
+
+        ax.legend(title='Correctness')
+
+        # Set the y-axis limits to be between 1 and -1
+        plt.ylim(-1.1, 1.1)
+        plt.xlim(min(np.min(self.solidity), np.min(other.solidity)), 1)
+
+        plt.axhline(y=0, color='black', linestyle='--')
+
+        plt.quiver(positions_x, positions_y, movements_x, movements_y, angles='xy', scale_units='xy', scale=1, linewidth=0.01)
+
+        plt.show()
+
+

@@ -1,4 +1,4 @@
-from cartographer_callbacks import Cartographer, Normalized_Cartographer
+from cartographer_callbacks import Cartographer, NormalizedCartographer
 import transformers as tr
 import datasets as ds
 import numpy as np
@@ -52,31 +52,33 @@ if __name__ == '__main__':
         sigmoid_scores = expit(predictions)
         return sigmoid_scores / np.sum(sigmoid_scores, axis=1, keepdims=True)
 
-    cartographer = Cartographer(tokenized_dataset['train'],
-                                trainer=trainer,
-                                outputs_to_probabilities=calc_probs)
-
-    cartographer_local_norm = Normalized_Cartographer(tokenized_dataset['train'],
+    cartographer_global_norm1 = NormalizedCartographer(tokenized_dataset['train'],
                                 trainer=trainer,
                                 outputs_to_probabilities=calc_probs,
-                                mode='local'
+                                mode='global'
                                 )
 
-    cartographer_global_norm = Normalized_Cartographer(tokenized_dataset['train'],
-                                                      trainer=trainer,
-                                                      outputs_to_probabilities=calc_probs,
-                                                      mode='global'
-                                                      )
-    trainer.add_callback(cartographer)
-    trainer.add_callback(cartographer_global_norm)
-    trainer.add_callback(cartographer_local_norm)
+    trainer.add_callback(cartographer_global_norm1)
 
     # Fine-tune the model
     print("start training")
     trainer.train()
-    #plot_map(cartographer)
-    cartographer.visualize()
-    cartographer_local_norm.visualize()
-    cartographer_global_norm.visualize()
 
-    print(cartographer_global_norm.learnability)
+    cartographer_global_norm2 = NormalizedCartographer(tokenized_dataset['train'],
+                                                      trainer=trainer,
+                                                      outputs_to_probabilities=calc_probs,
+                                                      mode='global'
+                                                      )
+    trainer = tr.Trainer(
+        model=trainer.model,
+        args=training_args,
+        train_dataset=tokenized_dataset['train'],
+        eval_dataset=tokenized_dataset['test'],
+    )
+    trainer.add_callback(cartographer_global_norm2)
+    trainer.train()
+
+    cartographer_global_norm1.compare_to(cartographer_global_norm2)
+
+
+    print(cartographer_global_norm1.learnability)
