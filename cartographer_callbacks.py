@@ -4,6 +4,8 @@ from typing import Callable
 import transformers as tr
 import datasets as ds
 import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 class Cartographer(tr.TrainerCallback):
     def __init__(self, dataset: ds.Dataset,
@@ -76,3 +78,48 @@ class Cartographer(tr.TrainerCallback):
         :return: Correctness
         """
         return np.mean(self.gold_labels_probabilities > 0.5, axis=-1)
+
+    def visualize(self):
+        # Plot
+        _, ax = plt.subplots(figsize=(9, 7))
+
+        sns.scatterplot(x=self.variability, y=self.confidence, hue=self.correctness,
+                        ax=ax)
+        sns.kdeplot(x=self.variability, y=self.confidence,
+                    levels=8, color=sns.color_palette("Paired")[7], linewidths=1, ax=ax)
+
+        ax.set(
+            title=f'Data map for {self._dataset.builder_name} set\nbased on a {self.trainer.model.name_or_path} classifier',
+            xlabel='Variability',
+            ylabel='Confidence'
+        )
+
+        # Annotations
+        box_style = {'boxstyle': 'round', 'facecolor': 'white', 'ec': 'black'}
+        ax.text(0.14, 0.84,
+                'easy-to-learn',
+                transform=ax.transAxes,
+                verticalalignment='top',
+                bbox=box_style)
+        ax.text(0.75, 0.5,
+                'ambiguous',
+                transform=ax.transAxes,
+                verticalalignment='top',
+                bbox=box_style)
+        ax.text(0.14, 0.14,
+                'hard-to-learn',
+                transform=ax.transAxes,
+                verticalalignment='top',
+                bbox=box_style)
+
+        ax.legend(title='Correctness')
+        plt.show()
+
+
+class Normalized_Cartographer(Cartographer):
+    """
+    A Cartographer that is normalized such that easy to learn samples have a large positive y val, hard to learn
+    a large negative one while ambiguous samples have a low x value.
+    The intention of this is to use x*y as a 1D-heuristic of how easy a sample is to learn.
+    (i.e. the higher the easier)
+    """
