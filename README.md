@@ -14,6 +14,6 @@ An example on how to use it is given in the main.py file
 
 
 ## Sources
-A more complete version can be found [here](https://github.com/allenai/cartography)
+A more complete version (i.e. the original implementation) can be found [here](https://github.com/allenai/cartography)
 and a very good implementation as a tensorflow callback that served as template 
 for this project can be found [here](https://github.com/eliorc/tavolo) under `learning.DataMapCallback`

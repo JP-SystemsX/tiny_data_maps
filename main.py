@@ -58,7 +58,8 @@ if __name__ == '__main__':
 
     tokenized_dataset = dataset.map(tokenize_function, batched=True)
     for key in tokenized_dataset:
-        tokenized_dataset[key] = tokenized_dataset[key].shard(1000,1)
+        # TODO Remove sharding when not just testing anymore
+        tokenized_dataset[key] = tokenized_dataset[key].shard(4000,1)
 
     # Define the training arguments
     training_args = tr.TrainingArguments(
