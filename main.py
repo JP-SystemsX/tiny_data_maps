@@ -79,6 +79,7 @@ if __name__ == '__main__':
     trainer.train()
 
     cartographer_global_norm1.compare_to(cartographer_global_norm2)
+    cartographer_global_norm2.compare_to(cartographer_global_norm1)
 
 
     print(cartographer_global_norm1.learnability)

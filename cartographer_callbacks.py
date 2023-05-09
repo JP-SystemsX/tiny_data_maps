@@ -135,7 +135,7 @@ class NormalizedCartographer(Cartographer):
         self.mode = mode
 
     @property
-    def confidence(self) -> np.ndarray:
+    def normalized_confidence(self) -> np.ndarray:
         """
         Average true label probability across epochs normalized either by considering
         the true absolute maximum and minimum that can be possible (1,0) (i.e. 'global' mode)
@@ -171,15 +171,15 @@ class NormalizedCartographer(Cartographer):
         -1 means couldn't be learned at all (Might be falsely Labeled)
         :return: Learnabilty
         '''
-        return self.solidity * self.confidence
+        return self.solidity * self.normalized_confidence
 
     def visualize(self):
         # Plot
         _, ax = plt.subplots(figsize=(9, 7))
 
-        sns.scatterplot(x=self.solidity, y=self.confidence, hue=self.correctness,
+        sns.scatterplot(x=self.solidity, y=self.normalized_confidence, hue=self.correctness,
                         ax=ax)
-        sns.kdeplot(x=self.solidity, y=self.confidence,
+        sns.kdeplot(x=self.solidity, y=self.normalized_confidence,
                     levels=8, color=sns.color_palette("Paired")[7], linewidths=1, ax=ax)
 
         ax.set(
@@ -218,9 +218,9 @@ class NormalizedCartographer(Cartographer):
 
     def compare_to(self, other:Cartographer):
         positions_x = self.solidity
-        positions_y = self.confidence
+        positions_y = self.normalized_confidence
         movements_x = other.solidity - self.solidity
-        movements_y = other.confidence - self.confidence
+        movements_y = other.normalized_confidence - self.normalized_confidence
 
         # Plot
         _, ax = plt.subplots(figsize=(9, 7))
