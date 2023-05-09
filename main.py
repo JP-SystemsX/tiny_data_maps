@@ -1,4 +1,4 @@
-from cartographer_callbacks import Cartographer
+from cartographer_callbacks import Cartographer, Normalized_Cartographer
 import transformers as tr
 import datasets as ds
 import numpy as np
@@ -53,13 +53,30 @@ if __name__ == '__main__':
         return sigmoid_scores / np.sum(sigmoid_scores, axis=1, keepdims=True)
 
     cartographer = Cartographer(tokenized_dataset['train'],
-                                sparse_labels=True,
                                 trainer=trainer,
                                 outputs_to_probabilities=calc_probs)
+
+    cartographer_local_norm = Normalized_Cartographer(tokenized_dataset['train'],
+                                trainer=trainer,
+                                outputs_to_probabilities=calc_probs,
+                                mode='local'
+                                )
+
+    cartographer_global_norm = Normalized_Cartographer(tokenized_dataset['train'],
+                                                      trainer=trainer,
+                                                      outputs_to_probabilities=calc_probs,
+                                                      mode='global'
+                                                      )
     trainer.add_callback(cartographer)
+    trainer.add_callback(cartographer_global_norm)
+    trainer.add_callback(cartographer_local_norm)
 
     # Fine-tune the model
     print("start training")
     trainer.train()
     #plot_map(cartographer)
     cartographer.visualize()
+    cartographer_local_norm.visualize()
+    cartographer_global_norm.visualize()
+
+    print(cartographer_global_norm.learnability)
