@@ -270,4 +270,11 @@ class NormalizedCartographer(Cartographer):
 
         plt.show()
 
+    def save_map(self, adr:str):
+        dataset = self.dataset.add_column(name="variability", column=self.variability)
+        dataset = dataset.add_column(name="confidence", column=self.confidence)
+        dataset = dataset.add_column(name="learnability", column=self.learnability)
+        dataset = dataset.remove_columns(["input_ids", "token_type_ids", "attention_mask"])
+        dataset.save_to_disk(adr)
+
 

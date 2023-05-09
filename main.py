@@ -79,7 +79,12 @@ if __name__ == '__main__':
     trainer.train()
 
     cartographer_global_norm1.compare_to(cartographer_global_norm2)
-    cartographer_global_norm2.compare_to(cartographer_global_norm1)
+
+    # If everything works during representation it should simply invert the vectors
+    # cartographer_global_norm2.compare_to(cartographer_global_norm1)
+
+    # Saves used Dataset with learnability, variability and confidence of each sample
+    cartographer_global_norm1.save_map("test")
 
 
     print(cartographer_global_norm1.learnability)
