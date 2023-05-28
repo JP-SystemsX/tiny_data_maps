@@ -4,8 +4,6 @@ from typing import Callable
 import transformers as tr
 import datasets as ds
 import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
 
 class Cartographer(tr.TrainerCallback):
     def __init__(self, dataset: ds.Dataset,
@@ -34,6 +32,7 @@ class Cartographer(tr.TrainerCallback):
 
     def on_epoch_end(self,  args: tr.TrainingArguments, state: tr.TrainerState, control: tr.TrainerControl, **kwargs):
         # Gather gold label probabilities over the dataset
+        self.trainer.is_in_train = False
         predictions = self.trainer.predict(self.dataset)
         probabilities = predictions[0]
         # predicted_labels_sparse = predictions[1]
@@ -45,6 +44,7 @@ class Cartographer(tr.TrainerCallback):
         gold_probabilities = probabilities[np.arange(probabilities.shape[0]), self.dataset["label"]]
         gold_probabilities = np.expand_dims(gold_probabilities, axis=-1)
         self._gold_labels_probabilities.append(gold_probabilities)
+        self.trainer.is_in_train = True
         return
 
     @property
@@ -81,6 +81,8 @@ class Cartographer(tr.TrainerCallback):
         return np.mean(self.gold_labels_probabilities > 0.5, axis=-1)
 
     def visualize(self):
+        import matplotlib.pyplot as plt
+        import seaborn as sns
         # Plot
         _, ax = plt.subplots(figsize=(9, 7))
 
@@ -174,6 +176,8 @@ class NormalizedCartographer(Cartographer):
         return self.solidity * self.normalized_confidence
 
     def visualize(self):
+        import matplotlib.pyplot as plt
+        import seaborn as sns
         # Plot
         _, ax = plt.subplots(figsize=(9, 7))
 
