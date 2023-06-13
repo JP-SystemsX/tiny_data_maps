@@ -3,3 +3,6 @@
 *.pyc
 test/
 test.py
+test_results.py
+jobs/label_imdb.sh
+*.sh

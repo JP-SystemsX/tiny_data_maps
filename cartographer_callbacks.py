@@ -221,6 +221,8 @@ class NormalizedCartographer(Cartographer):
         plt.show()
 
     def compare_to(self, other:Cartographer):
+        import matplotlib.pyplot as plt
+        import seaborn as sns
         positions_x = self.solidity
         positions_y = self.normalized_confidence
         movements_x = other.solidity - self.solidity

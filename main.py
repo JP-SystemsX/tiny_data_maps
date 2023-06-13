@@ -2,7 +2,7 @@ from cartographer_callbacks import Cartographer, NormalizedCartographer
 import transformers as tr
 import datasets as ds
 import numpy as np
-from scipy.special import expit
+from scipy.special import softmax
 import matplotlib.pyplot as plt
 import seaborn as sns
 
@@ -48,9 +48,10 @@ if __name__ == '__main__':
         eval_dataset=tokenized_dataset['test'],
     )
 
+
     def calc_probs(predictions):
-        sigmoid_scores = expit(predictions)
-        return sigmoid_scores / np.sum(sigmoid_scores, axis=1, keepdims=True)
+        softmax_scores = softmax(predictions, axis=1)
+        return softmax_scores
 
     cartographer_global_norm1 = NormalizedCartographer(tokenized_dataset['train'],
                                 trainer=trainer,
