@@ -20,8 +20,13 @@ class Cartographer(tr.TrainerCallback):
             outputs logits, dictionary or any other form which is not a vector of probabilities.
         """
         #:param sparse_labels: Set to ``True`` if the labels are given as integers (not one hot encoded)
-
-        self.dataset = dataset
+        if isinstance(dataset, ds.DatasetDict):
+            self.dataset = dataset["train"]
+            self.super_dataset = dataset
+        else:
+            assert isinstance(dataset, ds.Dataset)
+            self.dataset = dataset
+            self.super_dataset = None
         #self.sparse_labels = sparse_labels
 
         # Stores the probabilities for the gold labels after each epoch,
@@ -280,7 +285,16 @@ class NormalizedCartographer(Cartographer):
         dataset = self.dataset.add_column(name="variability", column=self.variability)
         dataset = dataset.add_column(name="confidence", column=self.confidence)
         dataset = dataset.add_column(name="learnability", column=self.learnability)
-        dataset = dataset.remove_columns(["input_ids", "token_type_ids", "attention_mask"])
+        dataset = dataset.remove_columns(["input_ids", "attention_mask"])
+        if "token_type_ids" in dataset.column_names:
+            dataset = dataset.remove_columns(["token_type_ids"])
+        if self.super_dataset is not None:
+            # Combine with test set before saving
+            self.super_dataset["test"] = self.super_dataset["test"].remove_columns(["input_ids", "attention_mask"])
+            if "token_type_ids" in self.super_dataset["test"].column_names:
+                self.super_dataset["test"] = self.super_dataset["test"].remove_columns(["token_type_ids"])
+            self.super_dataset["train"] = dataset
+            dataset = self.super_dataset
         dataset.save_to_disk(adr)
 
 
