@@ -1,6 +1,6 @@
 import warnings
 
-from cartographer_callbacks import Cartographer, NormalizedCartographer
+from cartographer_callbacks import NormalizedCartographer
 import transformers as tr
 import datasets as ds
 from scipy.special import softmax
@@ -18,10 +18,13 @@ def parse_args():
                         help='Address of the Dataset')
 
     parser.add_argument('--output_address', type=str, required=True,
-                        help='Path to directory where the downloaded Dataset shall be saved')
+                        help='Path to directory where the final Dataset shall be saved')
+
+    parser.add_argument('--cache_adr', type=str,
+                        help='Path to directory where all the downloaded stuff shall be cached')
 
     parser.add_argument('--model_name', type=str, default="albert-base-v2",
-                        help='Path to directory where the downloaded Dataset shall be saved')
+                        help='Huggingface model name')
 
     parser.add_argument("--repetitions", type=int, default=1,
                         help="""
@@ -54,9 +57,9 @@ def parse_args():
 
 # Simple variable to avoid resetting cartographer over epochs that would be a waste
 cartographer_failsave = 0
-def make_trainer(MODEL_NAME, training_args, tokenized_dataset, cartographer=None):
+def make_trainer(MODEL_NAME, training_args, tokenized_dataset, cartographer=None, num_labels=2):
     # Define the model
-    model = tr.AutoModelForSequenceClassification.from_pretrained(MODEL_NAME, num_labels=2)
+    model = tr.AutoModelForSequenceClassification.from_pretrained(MODEL_NAME, num_labels=num_labels, cache_dir=args.cache_adr)
     # Define the trainer
     trainer = tr.Trainer(
         model=model,
@@ -89,15 +92,17 @@ if __name__ == '__main__':
 
     # Load the dataset
     #dataset = ds.load_from_disk(args.dataset_address)
-    dataset = ds.load_dataset(args.dataset_address)
-    if "validation" in dataset.keys():
+    dataset = ds.load_dataset(args.dataset_address, cache_dir=args.cache_adr)
+    if "validation" in dataset.keys():  # Complicated way of saying drop validation set
         dataset = ds.DatasetDict({
-            "train": ds.concatenate_datasets([dataset["train"], dataset["validation"]]),
+            # "train": ds.concatenate_datasets([dataset["train"], dataset["validation"]]),
+            "train": dataset["train"],
             "test": dataset["test"]
         })
+    label_set = set(dataset["train"]["label"])
 
     # Load the tokenizer
-    tokenizer = tr.AutoTokenizer.from_pretrained(MODEL_NAME)
+    tokenizer = tr.AutoTokenizer.from_pretrained(MODEL_NAME, cache_dir=args.cache_adr)
 
     # Tokenize the dataset
     def tokenize_function(examples):
@@ -130,7 +135,7 @@ if __name__ == '__main__':
     print("start training")
     cartographer = None
     for r in range(args.repetitions):
-        trainer, cartographer = make_trainer(MODEL_NAME, training_args, tokenized_dataset, cartographer=cartographer)
+        trainer, cartographer = make_trainer(MODEL_NAME, training_args, tokenized_dataset, cartographer=cartographer, num_labels=len(label_set))
         trainer.train()
         #trainer.model = make_model(MODEL_NAME)
 

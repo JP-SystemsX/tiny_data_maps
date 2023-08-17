@@ -285,16 +285,29 @@ class NormalizedCartographer(Cartographer):
         dataset = self.dataset.add_column(name="variability", column=self.variability)
         dataset = dataset.add_column(name="confidence", column=self.confidence)
         dataset = dataset.add_column(name="learnability", column=self.learnability)
-        dataset = dataset.remove_columns(["input_ids", "attention_mask"])
-        if "token_type_ids" in dataset.column_names:
-            dataset = dataset.remove_columns(["token_type_ids"])
+
         if self.super_dataset is not None:
-            # Combine with test set before saving
-            self.super_dataset["test"] = self.super_dataset["test"].remove_columns(["input_ids", "attention_mask"])
-            if "token_type_ids" in self.super_dataset["test"].column_names:
-                self.super_dataset["test"] = self.super_dataset["test"].remove_columns(["token_type_ids"])
             self.super_dataset["train"] = dataset
             dataset = self.super_dataset
+        else:
+            # Create Test set
+            dataset = dataset.train_test_split(0.1)
+
+        # Remove Tokenized input columns
+        unwanted_columns = ["input_ids", "attention_mask", "token_type_ids"]
+        for unwanted_column in unwanted_columns:
+            for split in dataset.keys():
+                if unwanted_column in dataset[split].column_names:
+                    dataset[split] = dataset[split].remove_columns([unwanted_column])
+
+        # dataset = dataset.remove_columns(["input_ids", "attention_mask"])
+        # if "token_type_ids" in dataset.column_names:
+        #     dataset = dataset.remove_columns(["token_type_ids"])
+        #     # Combine with test set before saving
+        #     self.super_dataset["test"] = self.super_dataset["test"].remove_columns(["input_ids", "attention_mask"])
+        #     if "token_type_ids" in self.super_dataset["test"].column_names:
+        #         self.super_dataset["test"] = self.super_dataset["test"].remove_columns(["token_type_ids"])
+
         dataset.save_to_disk(adr)
 
 
